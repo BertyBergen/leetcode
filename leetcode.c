@@ -1,117 +1,147 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
+#include <stdio.h>   // Подключение стандартной библиотеки ввода-вывода
+#include <stdlib.h>  // Подключение стандартной библиотеки для malloc/free и др.
+#include <limits.h>  // Подключение библиотеки с константами, например INT_MIN
 
-#define EMPTY_KEY INT_MIN
+#define EMPTY_KEY INT_MIN  // Специальное значение для обозначения пустой ячейки в хеш-таблице
 
+// Структура записи в хеш-таблице — хранит ключ и связанный с ним индекс
 typedef struct {
-    int key;
-    int index;
+    int key;    // Ключ (число из массива)
+    int index;  // Индекс этого числа в исходном массиве
 } Entry;
 
+// Структура хеш-таблицы
 typedef struct {
-    Entry *data;
-    int capacity;
+    Entry *data;    // Указатель на массив записей
+    int capacity;   // Вместимость массива (размер таблицы)
 } HashMap;
 
+// Функция хеширования для int, возвращает хеш-значение
+/*
+static (в контексте функций)
+Означает, что эта функция имеет внутреннее связывание (internal linkage).
+То есть функция видна только внутри того файла, где она объявлена.
+Это предотвращает конфликт имён при компоновке, если в другом файле есть функция с таким же именем.
+В основном используется для вспомогательных функций, которые не должны быть видны извне.
+*/
+/*
+inline
+Подсказывает компилятору, что желательно заменить вызов функции её телом — то есть вставить код функции непосредственно туда, где она вызывается, чтобы избежать накладных расходов на вызов функции.
+Это может повысить производительность, особенно для коротких функций.
+Однако компилятор может проигнорировать inline и сделать обычный вызов, если сочтёт нужным.
+*/
+/*
+unsigned int
+Тип возвращаемого значения функции — беззнаковое целое число.
+*/
 static inline unsigned int hash_int(int x) {
-    unsigned int h = (unsigned int)x;
-    h ^= h >> 16;
-    h *= 0x7feb352d;
-    h ^= h >> 15;
-    h *= 0x846ca68b;
-    h ^= h >> 16;
-    return h;
+    
+    unsigned int h = (unsigned int)x;  // Преобразуем (int) x в беззнаковое число
+    h ^= h >> 16;                     // XOR значения h с ним же, сдвинутым на 16 бит вправо
+    h *= 0x7feb352d;                  // Умножение на константу (масштабирование битов)
+    h ^= h >> 15;                     // Ещё один XOR с сдвигом на 15 бит
+    h *= 0x846ca68b;                  // Второе умножение на другую константу
+    h ^= h >> 16;                     // Ещё один XOR с сдвигом на 16 бит
+    return h;                        // Возвращаем полученное хеш-значение
+
 }
 
+// Создание хеш-таблицы с заданной вместимостью
 HashMap *hm_create(int cap) {
-    HashMap *hm = malloc(sizeof *hm);
-    if (!hm) return NULL;
-    hm->capacity = cap;
-    hm->data = malloc(sizeof *hm->data * cap);
-    if (!hm->data) {
+    HashMap *hm = malloc(sizeof *hm);  // Выделяем память под структуру
+    if (!hm) return NULL;               // Проверяем выделение памяти
+    hm->capacity = cap;                 // Устанавливаем размер таблицы
+    hm->data = malloc(sizeof *hm->data * cap);  // Выделяем память под массив записей
+    if (!hm->data) {                   // Проверка успешности выделения памяти
         free(hm);
         return NULL;
     }
+    // Инициализируем все записи как пустые (EMPTY_KEY и index = -1)
     for (int i = 0; i < cap; ++i) {
         hm->data[i].key = EMPTY_KEY;
         hm->data[i].index = -1;
     }
-    return hm;
+    return hm;  // Возвращаем указатель на созданную хеш-таблицу
 }
 
+// Освобождение памяти, занятой хеш-таблицей
 void hm_free(HashMap *hm) {
-    if (!hm) return;
-    free(hm->data);
-    free(hm);
+    if (!hm) return;          // Если указатель NULL — ничего не делаем
+    free(hm->data);           // Освобождаем память массива данных
+    free(hm);                 // Освобождаем память структуры
 }
 
+// Добавление пары (key, index) в хеш-таблицу
 int hm_put(HashMap *hm, int key, int index) {
-    unsigned int mask = hm->capacity - 1;
-    unsigned int h = hash_int(key) & mask;
+    unsigned int mask = hm->capacity - 1;     // Маска для быстрого вычисления остатка по размеру (capacity должна быть степенью 2)
+    unsigned int h = hash_int(key) & mask;    // Вычисляем начальный хеш-индекс
     for (;;) {
-        if (hm->data[h].key == EMPTY_KEY) {
+        if (hm->data[h].key == EMPTY_KEY) {   // Если ячейка пустая — записываем туда пару
             hm->data[h].key = key;
             hm->data[h].index = index;
             return 1;
         }
-        if (hm->data[h].key == key) {
+        if (hm->data[h].key == key) {         // Если ключ уже есть — обновляем индекс
             hm->data[h].index = index;
             return 1;
         }
-        h = (h + 1) & mask;
+        h = (h + 1) & mask;                   // Линейное пробирование (следующий индекс по модулю)
     }
 }
 
+// Получение индекса по ключу key из хеш-таблицы
 int hm_get(HashMap *hm, int key) {
     unsigned int mask = hm->capacity - 1;
     unsigned int h = hash_int(key) & mask;
     for (;;) {
-        if (hm->data[h].key == EMPTY_KEY) return -1;
-        if (hm->data[h].key == key) return hm->data[h].index;
-        h = (h + 1) & mask;
+        if (hm->data[h].key == EMPTY_KEY) return -1;  // Если пустая ячейка — ключ не найден
+        if (hm->data[h].key == key) return hm->data[h].index;  // Если нашли ключ — возвращаем индекс
+        h = (h + 1) & mask;                             // Линейное пробирование
     }
 }
 
+// Функция решения задачи "Two Sum"
+// Принимает массив nums, его размер numsSize, цель target, и указатель для возвращаемого размера результата
 int* twoSum(int* nums, int numsSize, int target, int* returnSize) {
     int cap = 1;
-    while (cap < numsSize * 2) cap <<= 1;
-    HashMap *hm = hm_create(cap);
-    if (!hm) return NULL;
+    while (cap < numsSize * 2) cap <<= 1;     // Находим минимальную степень двойки >= 2*numsSize для вместимости хеш-таблицы
+    HashMap *hm = hm_create(cap);             // Создаем хеш-таблицу
+    if (!hm) return NULL;                      // Проверяем успешность создания
 
     for (int i = 0; i < numsSize; ++i) {
-        int need = target - nums[i];
-        int found = hm_get(hm, need);
-        if (found != -1) {
-            int *res = malloc(2 * sizeof *res);
+        int need = target - nums[i];           // Вычисляем, какое число нужно найти, чтобы в сумме получить target
+        int found = hm_get(hm, need);          // Проверяем, есть ли это число в хеш-таблице
+        if (found != -1) {                      // Если нашли подходящий индекс
+            int *res = malloc(2 * sizeof *res); // Выделяем память под результат — два индекса
             if (!res) {
                 hm_free(hm);
                 return NULL;
             }
-            res[0] = found;
-            res[1] = i;
-            *returnSize = 2;
-            hm_free(hm);
-            return res;
+            res[0] = found;    // Индекс первого числа
+            res[1] = i;        // Индекс текущего числа
+            *returnSize = 2;   // Размер возвращаемого массива — 2
+            hm_free(hm);       // Освобождаем хеш-таблицу
+            return res;        // Возвращаем результат
         }
-        hm_put(hm, nums[i], i);
+        hm_put(hm, nums[i], i);  // Если подходящего числа не нашли — добавляем текущее число в хеш-таблицу
     }
 
-    *returnSize = 0;
-    hm_free(hm);
+    *returnSize = 0;  // Если подходящих чисел нет — возвращаем пустой результат
+    hm_free(hm);      // Освобождаем память
     return NULL;
 }
 
+// Тестирование функции twoSum в main
 int main(void) {
-    int nums[] = {2, 7, 11, 15};
-    int target = 9;
-    int retSz = 0;
-    int *ans = twoSum(nums, 4, target, &retSz);
+    int nums[] = {2, 7, 11, 15};   // Входной массив
+    int target = 9;                // Целевое значение суммы
+    int retSz = 0;                 // Переменная для хранения размера результата
+    int *ans = twoSum(nums, 4, target, &retSz);  // Вызов функции twoSum
     if (ans) {
-        printf("[%d, %d]\n", ans[0], ans[1]);
-        free(ans);
+        printf("[%d, %d]\n", ans[0], ans[1]);  // Если результат есть — выводим индексы
+        free(ans);                             // Освобождаем память результата
     } else {
-        printf("Не найдено\n");
+        printf("Не найдено\n");               // Если результат пустой — сообщаем
     }
     return 0;
 }
