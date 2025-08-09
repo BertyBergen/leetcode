@@ -74,18 +74,18 @@ void hm_free(HashMap *hm) {
 // Добавление пары (key, index) в хеш-таблицу
 int hm_put(HashMap *hm, int key, int index) {
     unsigned int mask = hm->capacity - 1;     // Маска для быстрого вычисления остатка по размеру (capacity должна быть степенью 2)
-    unsigned int h = hash_int(key) & mask;    // Вычисляем начальный хеш-индекс
+    unsigned int h = hash_int(key) & mask;   // Вычисляем начальный хеш-индекс
     for (;;) {
-        if (hm->data[h].key == EMPTY_KEY) {   // Если ячейка пустая — записываем туда пару
+        if (hm->data[h].key == EMPTY_KEY) {  // Если ячейка пустая — записываем туда пару
             hm->data[h].key = key;
             hm->data[h].index = index;
             return 1;
         }
-        if (hm->data[h].key == key) {         // Если ключ уже есть — обновляем индекс
+        if (hm->data[h].key == key) {    // Если ключ уже есть — обновляем индекс
             hm->data[h].index = index;
             return 1;
         }
-        h = (h + 1) & mask;                   // Линейное пробирование (следующий индекс по модулю)
+        h = (h + 1) & mask;   // Линейное пробирование (следующий индекс по модулю)
     }
 }
 

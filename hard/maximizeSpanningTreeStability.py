@@ -1,51 +1,70 @@
+from typing import List
+
 class DSU:
     def __init__(self, n):
         self.parent = list(range(n))
-    
+
     def find(self, x):
-        if self.parent[x] != x:
-            self.parent[x] = self.find(self.parent[x])
-        return self.parent[x]
-    
-    def unite(self, x, y):
-        fx, fy = self.find(x), self.find(y)
-        if fx == fy:
+        while self.parent[x] != x:
+            self.parent[x] = self.parent[self.parent[x]]
+            x = self.parent[x]
+        return x
+
+    def union(self, x, y):
+        xr, yr = self.find(x), self.find(y)
+        if xr == yr:
             return False
-        self.parent[fy] = fx
+        self.parent[yr] = xr
         return True
 
-def maximizeStability(n, k, edges):
-    def canBuild(minStability):
-        dsu = DSU(n)
-        upgrades = 0
-        count = 0
+class Solution:
+    def maxStability(self, n: int, edges: List[List[int]], k: int) -> int:
+        def can_build(stability):
+            dsu = DSU(n)
+            count = 0
+            used_upgrades = 0
+            
+            # Сначала добавим обязательные ребра
+            for u, v, strength, must in edges:
+                if must == 1:
+                    if strength < stability:
+                        return False  # Обязательное ребро слишком слабое
+                    if dsu.union(u, v):
+                        count += 1
+            
+            optional_edges = []
+            for u, v, strength, must in edges:
+                if must == 0:
+                    # Добавляем ребра, которые можно использовать
+                    if strength >= stability:
+                        optional_edges.append((0, u, v))  # Без апгрейда
+                    elif strength * 2 >= stability:
+                        optional_edges.append((1, u, v))  # С апгрейдом
 
-        for u, v, s, must in edges:
-            if must and s < minStability:
-                return False
-            if must and dsu.unite(u, v):
-                count += 1
+            # Сортируем, сначала без апгрейда (т.е. приоритет без апгрейда)
+            optional_edges.sort()
 
-        for u, v, s, must in edges:
-            if must:
-                continue
-            if s >= minStability and dsu.unite(u, v):
-                count += 1
-            elif s * 2 >= minStability and upgrades < k and dsu.unite(u, v):
-                upgrades += 1
-                count += 1
+            for need_upgrade, u, v in optional_edges:
+                if need_upgrade == 1 and used_upgrades >= k:
+                    continue
+                if dsu.union(u, v):
+                    count += 1
+                    if need_upgrade == 1:
+                        used_upgrades += 1
+                if count == n - 1:
+                    return True
+            return False
 
-        return count == n - 1
+        # Бинарный поиск по стабильности
+        low, high = 0, max(strength * 2 for _, _, strength, _ in edges)
+        result = -1
 
-    edges.sort(key=lambda x: -x[2])
-    low, high = 0, 10**9 + 1
-    ans = -1
+        while low <= high:
+            mid = (low + high) // 2
+            if can_build(mid):
+                result = mid
+                low = mid + 1  # Ищем более высокую стабильность
+            else:
+                high = mid - 1
 
-    while low <= high:
-        mid = (low + high) // 2
-        if canBuild(mid):
-            ans = mid
-            low = mid + 1
-        else:
-            high = mid - 1
-    return ans
+        return result
