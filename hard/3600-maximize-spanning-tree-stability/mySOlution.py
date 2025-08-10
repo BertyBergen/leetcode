@@ -24,24 +24,21 @@ class Solution:
             count = 0
             used_upgrades = 0
             
-            # Сначала добавим обязательные ребра
             for u, v, strength, must in edges:
                 if must == 1:
                     if strength < stability:
-                        return False  # Обязательное ребро слишком слабое
+                        return False  
                     if dsu.union(u, v):
                         count += 1
             
             optional_edges = []
             for u, v, strength, must in edges:
                 if must == 0:
-                    # Добавляем ребра, которые можно использовать
                     if strength >= stability:
-                        optional_edges.append((0, u, v))  # Без апгрейда
+                        optional_edges.append((0, u, v))  
                     elif strength * 2 >= stability:
-                        optional_edges.append((1, u, v))  # С апгрейдом
+                        optional_edges.append((1, u, v))  
 
-            # Сортируем, сначала без апгрейда (т.е. приоритет без апгрейда)
             optional_edges.sort()
 
             for need_upgrade, u, v in optional_edges:
@@ -55,7 +52,6 @@ class Solution:
                     return True
             return False
 
-        # Бинарный поиск по стабильности
         low, high = 0, max(strength * 2 for _, _, strength, _ in edges)
         result = -1
 
@@ -63,7 +59,7 @@ class Solution:
             mid = (low + high) // 2
             if can_build(mid):
                 result = mid
-                low = mid + 1  # Ищем более высокую стабильность
+                low = mid + 1  
             else:
                 high = mid - 1
 
