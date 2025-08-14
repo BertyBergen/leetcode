@@ -1,41 +1,18 @@
-/**
- * Note: The returned array must be malloced, assume caller calls free().
- */
-int* getAverages(int* nums, int numsSize, int k, int* returnSize) {
-    *returnSize = numsSize;
-    int *result = malloc(numsSize * sizeof(int)); 
+int minimumSumSubarray(int* nums, int numsSize, int l, int r)
+{
+    int min = INT_MAX;
 
-    int windowSize = 2*k + 1;
-    
-    if (k == 0) 
+    for (int i = 0; i < numsSize; ++i)
     {
-        memcpy((void *)result, (void *)nums, sizeof(int) * numsSize);
-        return result;
-    }
-    
-    else if (windowSize > numsSize)
-    {
-        memset((void*)result,0xFF, sizeof(int) *  numsSize);
-        return result;
-    } 
-    else
-    {
-
-        memset(result, 0xFF,k * sizeof(int));
-        memset((result + (numsSize - k)), 0xFF,(k * sizeof(int)));
+        int sum = 0;
         
-        unsigned long long sum = 0;
-
-        for (int i = 0; i < numsSize; i++)
+        for (int j = i; j < i + r &&  j < numsSize; ++j)
         {
-            sum += nums[i];
-            if (i >= windowSize) sum -= nums[i - windowSize];
-            if (i >= windowSize - 1) result[i - k] = (int)(sum/windowSize); 
+            sum += nums[j];
 
+            int length = j - i + 1;
+            if (length >= l && sum > 0 && sum < min) min = sum;
         }
     }
-    
-    return result;
-
-
+    return min == INT_MAX ? -1 : min;
 }
