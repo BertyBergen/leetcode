@@ -1,34 +1,44 @@
 #include <stdlib.h>
 
-long long countNonDecreasingSubarrays(int* nums, int numsSize, int k) {
-    long long K = k; 
-    int* A = (int*)malloc(numsSize * sizeof(int));
-    for (int i = 0; i < numsSize; i++)
-        A[i] = nums[numsSize - 1 - i];
+long long countNonDecreasingSubarrays(int* nums, int numsSize, int maxOps) {
+    long long remainingOps = maxOps; 
 
-    int* q = (int*)malloc(numsSize * sizeof(int));
-    int front = 0, back = 0;
-    int i = 0;
-    long long res = 0;
+    // Переворачиваем массив, чтобы идти справа налево
+    int* reversed = (int*)malloc(numsSize * sizeof(int));
+    for (int idx = 0; idx < numsSize; idx++)
+        reversed[idx] = nums[numsSize - 1 - idx];
 
-    for (int j = 0; j < numsSize; j++) {
-        while (back > front && A[q[back - 1]] < A[j]) {
-            int r = q[--back];
-            int l = (back > front) ? q[back - 1] : i - 1;
-            K -= (long long)(r - l) * (A[j] - A[r]); // приведение к long long
+    // Монотонная очередь для индексов «важных элементов»
+    int* monoQueue = (int*)malloc(numsSize * sizeof(int));
+    int queueStart = 0, queueEnd = 0;
+
+    int windowStart = 0;       // левый конец окна
+    long long totalSubarrays = 0;
+
+    for (int windowEnd = 0; windowEnd < numsSize; windowEnd++) {
+        // Убираем из очереди элементы, которые меньше текущего
+        while (queueEnd > queueStart && reversed[monoQueue[queueEnd - 1]] < reversed[windowEnd]) {
+            int removedIdx = monoQueue[--queueEnd];
+            int prevIdx = (queueEnd > queueStart) ? monoQueue[queueEnd - 1] : windowStart - 1;
+            // Считаем стоимость поднятия элементов до нового максимума
+            remainingOps -= (long long)(removedIdx - prevIdx) * (reversed[windowEnd] - reversed[removedIdx]);
         }
-        q[back++] = j;
 
-        while (K < 0) {
-            K += (long long)(A[q[front]] - A[i]);
-            if (q[front] == i) front++;
-            i++;
+        // Добавляем текущий индекс в очередь
+        monoQueue[queueEnd++] = windowEnd;
+
+        // Если превысили лимит операций, сдвигаем левый конец окна
+        while (remainingOps < 0) {
+            remainingOps += (long long)(reversed[monoQueue[queueStart]] - reversed[windowStart]);
+            if (monoQueue[queueStart] == windowStart) queueStart++;
+            windowStart++;
         }
 
-        res += j - i + 1;
+        // Добавляем количество валидных подмассивов с правым концом windowEnd
+        totalSubarrays += windowEnd - windowStart + 1;
     }
 
-    free(A);
-    free(q);
-    return res;
+    free(reversed);
+    free(monoQueue);
+    return totalSubarrays;
 }
