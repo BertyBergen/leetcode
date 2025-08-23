@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 long long countNonDecreasingSubarrays(int* nums, int numsSize, int maxOps) {
-    long long remainingOps = maxOps; 
+    long long remain = maxOps; 
 
     // Переворачиваем массив, чтобы идти справа налево
     int* reversed = (int*)malloc(numsSize * sizeof(int));
@@ -10,35 +10,34 @@ long long countNonDecreasingSubarrays(int* nums, int numsSize, int maxOps) {
 
     // Монотонная очередь для индексов «важных элементов»
     int* q = (int*)malloc(numsSize * sizeof(int));
-    int qstart = 0, qend = 0;
 
     int left = 0;       // левый конец окна
-    long long totalSubarrays = 0;
+    long long result = 0;
 
     for (int right = 0; right < numsSize; right++) {
         // Убираем из очереди элементы, которые меньше текущего
-        while (qend > qstart && reversed[q[qend - 1]] < reversed[right]) {
-            int removedIdx = q[--qend];
-            int prevIdx = (qend > qstart) ? q[qend - 1] : left - 1;
+        while (right > left && reversed[q[right - 1]] < reversed[right]) {
+            int rmIdx = q[--right];
+            int prevIdx = (right > left) ? q[right - 1] : left - 1;
             // Считаем стоимость поднятия элементов до нового максимума
-            remainingOps -= (long long)(removedIdx - prevIdx) * (reversed[right] - reversed[removedIdx]);
+            remain -= (long long)(rmIdx - prevIdx) * (reversed[right] - reversed[rmIdx]);
         }
 
         // Добавляем текущий индекс в очередь
-        q[qend++] = right;
+        q[right++] = right;
 
         // Если превысили лимит операций, сдвигаем левый конец окна
-        while (remainingOps < 0) {
-            remainingOps += (long long)(reversed[q[qstart]] - reversed[left]);
-            if (q[qstart] == left) qstart++;
+        while (remain < 0) {
+            remain += (long long)(reversed[q[left]] - reversed[left]);
+            if (q[left] == left) left++;
             left++;
         }
 
         // Добавляем количество валидных подмассивов с правым концом right
-        totalSubarrays += right - left + 1;
+        result += right - left + 1;
     }
 
     free(reversed);
     free(q);
-    return totalSubarrays;
+    return result;
 }

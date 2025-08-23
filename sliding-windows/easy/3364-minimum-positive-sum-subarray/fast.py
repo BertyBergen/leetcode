@@ -8,9 +8,9 @@ class Solution:
             prefix[i+1] = prefix[i] + nums[i]
         
         min_sum = float('inf')
-        for start in range(n):
-            for end in range(start + l, min(n, start + r) + 1):
-                s = prefix[end] - prefix[start]
+        for left in range(n):
+            for right in range(left + l, min(n, left + r) + 1):
+                s = prefix[right] - prefix[left]
                 if s > 0:
                     min_sum = min(min_sum, s)
 

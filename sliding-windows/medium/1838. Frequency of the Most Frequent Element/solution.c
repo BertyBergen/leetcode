@@ -7,14 +7,16 @@ int cmp_int(const void *a, const void *b) {
     return (x > y) - (x < y);
 }
 
-int maxFrequency(int* nums, int numsSize, int k) {
+int maxFrequency(int* nums, int numsSize, int k) 
+{
     qsort(nums, numsSize, sizeof(int), cmp_int);
 
     long long sum = 0;
     int left = 0;
     int res = 0;
 
-    for (int right = 0; right < numsSize; right++) {
+    for (int right = 0; right < numsSize; right++) 
+    {
         sum += nums[right];
 
         while ((long long)nums[right] * (right - left + 1) - sum > k) {
