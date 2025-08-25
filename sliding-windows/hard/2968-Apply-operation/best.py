@@ -7,11 +7,9 @@ class Solution:
         left = 0
         for right in range(n):
             k -= nums[right] - nums[(right + left) // 2]
-            # print(f"{k} -= nums[{right}] - nums[{(right + left) // 2}]", "value",nums[right], "index", right)
-            print(k)
-            # if k < 0:
-                # k += nums[(right + left + 1) // 2] - nums[left]
-                # left += 1
+            if k < 0:
+                k += nums[(right + left + 1) // 2] - nums[left]
+                left += 1
         return n - left
     
 
